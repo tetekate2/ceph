@@ -33,7 +33,7 @@ class EmailReport(MgrModule):
         server.ehlo()
         server.starttls()
         server.login(CONFIG['mail_username'], CONFIG['mail_password'])
-        email_alert = server.sendmail(CONFIG['mail_username'], CONFIG['test_user'],msg.as_string())
+        server.sendmail(CONFIG['mail_username'], CONFIG['test_user'],msg.as_string())
 
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
