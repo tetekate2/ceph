@@ -7,6 +7,7 @@ See doc/mgr/EmailReport.rst for more info.
 
 from mgr_module import MgrModule
 import smtplib
+import json
 from email.mime.text import MIMEText
 from config import CONFIG
 
@@ -22,9 +23,9 @@ class EmailReport(MgrModule):
     ]
 
     def alert_via_email(self, cmd):
-        msg = MIMEText('''cluster: id:f7edf244-4ec3-444c-b783-b8d6418852e2
-         health: HEALTH_WARN
-                     2 modules have failed dependencies''')
+        health_status = self.get('health')
+        result = json.dumps(health_status, sort_keys=True, indent=4)
+        msg = MIMEText(result)
         msg['Subject'] = 'Ceph: Cluster Health Status Alert'
         msg['From'] = CONFIG['mail_username']
         msg['To'] = CONFIG['test_user']
