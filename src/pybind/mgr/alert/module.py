@@ -22,10 +22,16 @@ class EmailReport(MgrModule):
         },
     ]
 
+
     def alert_via_email(self, cmd):
-        health_status = self.get('health')
-        result = json.dumps(health_status, sort_keys=True, indent=4)
-        msg = MIMEText(result)
+        # result = ''
+        # health_status = self.get('health')
+        # for k, v in health_status.items():
+        #     result += '{}: {}\n'.format(k, v)
+        # print(result)
+        health = json.loads(self.get('health')['json'])
+        health = json.dumps(health, sort_keys=True, indent=4)
+        msg = MIMEText(health)
         msg['Subject'] = 'Ceph: Cluster Health Status Alert'
         msg['From'] = CONFIG['mail_username']
         msg['To'] = CONFIG['test_user']
