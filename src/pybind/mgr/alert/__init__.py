@@ -1,1 +1,1 @@
-from .module import EmailReport
+from .module import Alert
