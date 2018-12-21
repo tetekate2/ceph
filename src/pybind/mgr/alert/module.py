@@ -8,8 +8,10 @@ See doc/mgr/EmailReport.rst for more info.
 from mgr_module import MgrModule
 from threading import Event
 import sys
+import  six
 import smtplib
 import json
+import time
 from email.mime.text import MIMEText
 import Slacker
 from config import CONFIG
@@ -42,11 +44,6 @@ class Alert(MgrModule):
         msg = json.dumps(health, sort_keys=True, indent=4)
 
     def alert_via_email(self, cmd):
-        # result = ''
-        # health_status = self.get('health')
-        # for k, v in health_status.items():
-        #     result += '{}: {}\n'.format(k, v)
-        # print(result)
         health = json.loads(self.get('health')['json'])
         health = json.dumps(health, sort_keys=True, indent=4)
         msg = MIMEText(health)
@@ -59,18 +56,6 @@ class Alert(MgrModule):
         server.login(CONFIG['mail_username'], CONFIG['mail_password'])
         server.sendmail(CONFIG['mail_username'], CONFIG['test_user'],msg.as_string())
 
-    def serve(self):
-        """
-        This method is called by the mgr when the module starts and can be
-        used for any background activity.
-        """
-        self.log.info("Starting")
-        while self.run:
-            sleep_interval = 5
-            self.log.debug('Sleeping for %d seconds', sleep_interval)
-            ret = self.event.wait(sleep_interval)
-            self.event.clear()
-
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
         if cmd['prefix'] == 'email alert':
@@ -79,6 +64,28 @@ class Alert(MgrModule):
             return self.post_to_slack(cmd)
         else:
             raise NotImplementedError(cmd['prefix'])
+
+    def serve(self):
+        """
+        This method is called by the mgr when the module starts and can be
+        used for any background activity.
+        """
+        self.log.info("Starting")
+        while self.run:
+            time_last_checked = 0
+            sleep_interval = 60
+            old_health = json.loads(self.get('health')['json'])
+            if time.time() >= time_last_checked:
+                time_last_checked = time.time()+60
+                new_health = json.loads(self.get('health')['json'])
+                for (code,item), (old_code,old_item) in zip(new_health.items(), old_health.items()):
+                    if item['severity'] != old_item['severity'] or item['summary']['message'] != old_item['summary']['message']:
+                        #call send notofication function  here
+                    else:
+                        old_health = new_health
+            self.log.debug('Sleeping for %d seconds', sleep_interval)
+            self.event.wait(sleep_interval)
+            self.event.clear()
 
     def shutdown(self):
         """
