@@ -109,32 +109,36 @@ class Alert(MgrModule):
     def new_alert(self, cmd):
         self.refresh_config()
         if option in ['slack_api']:
-            slack = Slacker(self.config['slack_api'])
-            alert_message =
+
+    def get_api():
+        auth = tweepy.OAuthHandler(self.config['twitter_consumer_key'], self.config['twitter_consumer_secret'])
+        auth.set_access_token(slef.config['twitter_access_token'], self.config['twitter_access_token_secret'])
+        return tweepy.API(auth)
 
     def tweets(alert_message):
-        # authentication
-        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        auth.set_access_token(access_token, access_token_secret)
-
-        api = tweepy.API(auth)
-        tweet ="Text part of the tweet"
+        api = get_api()
+        tweet = alert_message
+        status = api.update_status(status=tweet)
+        return status
 
     def slack(alert_message):
-        slack = Slacker(CONFIG['slack_api'])
+        slack = Slacker(self.config['slack_api'])
+        post = alert_message
+        return post
 
     def email(alert_message):
-        health = json.loads(self.get('health')['json'])
-        health = json.dumps(health, sort_keys=True, indent=4)
-        msg = MIMEText(health)
+        msg = MIMEText(alert_message)
         msg['Subject'] = 'Ceph: Cluster Health Status Alert'
-        msg['From'] = CONFIG['mail_username']
-        msg['To'] = CONFIG['test_user']
-        server = smtplib.SMTP('{}:{}'.format(CONFIG['mail_server'], CONFIG['mail_port']))
+        msg['From'] = self.config['email_sender']
+        msg['To'] = self.config['email_receiver']
+        server = smtplib.SMTP('{}:{}'.format(self.config['mail_server'], self.config['mail_port']))
         server.ehlo()
         server.starttls()
-        server.login(CONFIG['mail_username'], CONFIG['mail_password'])
-        server.sendmail(CONFIG['mail_username'], CONFIG['test_user'],msg.as_string())
+        server.login(self.config['email_sender'], self.config['sender_password'])
+        sendmail = server.sendmail(self.config['email_sender'], self.config['email_receiver'],msg.as_string())
+        return sendmail
+
+        
 
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
