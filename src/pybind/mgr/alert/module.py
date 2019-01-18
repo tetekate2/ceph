@@ -14,6 +14,7 @@ import json
 import datetime
 from email.mime.text import MIMEText
 import Slacker
+import tweepy
 from config import CONFIG
 
 SLEEP_INTERVAL = datetime.timedelta(seconds = 60)
@@ -44,6 +45,22 @@ class Alert(MgrModule):
             {
                 'name': 'slack_api',
                 'default': None
+            },
+            {
+                'name': 'twitter_consumer_key'
+                'default': None
+            },
+            {
+                'name': 'twitter_consumer_secret'
+                'default': None
+            },
+            {
+                'name': 'twitter_access_token'
+                'default': None
+            },
+            {
+                'name': 'twitter_access_token_secret'
+                'default': None
             }
     ]
 
@@ -63,19 +80,50 @@ class Alert(MgrModule):
 
     def __init__(self, *args, **kwargs):
         super(Module, self).__init__(*args, **kwargs)
-        for opt in self.OPTIONS:
-            setattr(self, opt['name'], opt['default'])
-
         # set up some members to enable the serve() method and shutdown
         self.run = True
         self.event = Event()
 
-    def post_to_slack(self, cmd):
-        slack = Slacker(CONFIG['slack_api'])
-        health = json.loads(self.get('health')['json'])
-        msg = json.dumps(health, sort_keys=True, indent=4)
+    def init_module_config(self):
+        self.config['mail_server'] = \
+            self.get_config("mail_server", default=self.config_keys['mail_server'])
+        self.config['mail_port'] = \
+            int(self.get_config("mail_port", default=self.config_keys['mail_port']))
+        self.config['email_receiver'] = \
+            self.get_config("email_receiver", default=self.config_keys['email_receiver'])
+        self.config['email_sender'] = \
+            self.get_config("email_sender", default=self.config_keys['email_sender'])
+        self.config['sender_password'] = \
+            self.get_config("sender_password", default=self.config_keys['sender_password'])
+        self.config['slack_api'] = \
+            int(self.get_config("slack_api", default=self.config_keys['slack_api']))
+        self.config['twitter_consumer_key'] = \
+            int(self.get_config("twitter_consumer_key", default=self.config_keys['twitter_consumer_key']))
+        self.config['twitter_consumer_secret'] = \
+            int(self.get_config("twitter_consumer_key", default=self.config_keys['twitter_consumer_key']))
+        self.config['twitter_access_token'] = \
+            int(self.get_config("twitter_access_token", default=self.config_keys['twitter_access_token']))
+        self.config['twitter_access_token_secret'] = \
+            int(self.get_config("twitter_access_token_secret", default=self.config_keys['twitter_access_token_secret']))
 
-    def alert_via_email(self, cmd):
+    def new_alert(self, cmd):
+        self.refresh_config()
+        if option in ['slack_api']:
+            slack = Slacker(self.config['slack_api'])
+            alert_message =
+
+    def tweets(alert_message):
+        # authentication
+        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_token, access_token_secret)
+
+        api = tweepy.API(auth)
+        tweet ="Text part of the tweet"
+
+    def slack(alert_message):
+        slack = Slacker(CONFIG['slack_api'])
+
+    def email(alert_message):
         health = json.loads(self.get('health')['json'])
         health = json.dumps(health, sort_keys=True, indent=4)
         msg = MIMEText(health)
@@ -109,9 +157,12 @@ class Alert(MgrModule):
         This method is called by the mgr when the module starts and can be
         used for any background activity.
         """
-        old_health = json.loads(self.get('health')['json'])
         self.log.info("Starting")
+        old_health = None
+        old_health = json.loads(self.get('health')['json'])
+
         while self.run:
+            self.refresh_config()
             if time.time() >= time_last_checked:
                 time_last_checked = time.time()+60
                 new_health = json.loads(self.get('health')['json'])
