@@ -19,6 +19,34 @@ from config import CONFIG
 SLEEP_INTERVAL = datetime.timedelta(seconds = 60)
 
 class Alert(MgrModule):
+    OPTIONS = [
+    ''' define the servers address and some authentication credentials'''
+            {
+                'name': 'mail_server',
+                'default': 'smtp.gmail.com'
+            },
+            {
+                'name': 'mail_port',
+                'default': 587
+            },
+            {
+                'name': 'email_receiver',
+                'default': None
+            },
+            {
+                'name': 'email_sender',
+                'default': None
+            },
+            {
+                'name': 'sender_password',
+                'default': None
+            },
+            {
+                'name': 'slack_api',
+                'default': None
+            }
+    ]
+
     COMMANDS = [
         {
             "cmd": "email alert "
@@ -35,6 +63,8 @@ class Alert(MgrModule):
 
     def __init__(self, *args, **kwargs):
         super(Module, self).__init__(*args, **kwargs)
+        for opt in self.OPTIONS:
+            setattr(self, opt['name'], opt['default'])
 
         # set up some members to enable the serve() method and shutdown
         self.run = True
@@ -66,6 +96,13 @@ class Alert(MgrModule):
             return self.post_to_slack(cmd)
         else:
             raise NotImplementedError(cmd['prefix'])
+
+    def refresh_config(self):
+        for opt in self.OPTIONS:
+            setattr(self,
+                    opt['name'],
+                    self.get_config(opt['name']) or opt['default'])
+            self.log.debug(' %s = %s', opt['name'], getattr(self, opt['name']))
 
     def serve(self):
         """
