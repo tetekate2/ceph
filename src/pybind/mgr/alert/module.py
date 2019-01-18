@@ -106,10 +106,6 @@ class Alert(MgrModule):
         self.config['twitter_access_token_secret'] = \
             int(self.get_config("twitter_access_token_secret", default=self.config_keys['twitter_access_token_secret']))
 
-    def new_alert(self, cmd):
-        self.refresh_config()
-        if option in ['slack_api']:
-
     def get_api():
         auth = tweepy.OAuthHandler(self.config['twitter_consumer_key'], self.config['twitter_consumer_secret'])
         auth.set_access_token(slef.config['twitter_access_token'], self.config['twitter_access_token_secret'])
@@ -138,7 +134,9 @@ class Alert(MgrModule):
         sendmail = server.sendmail(self.config['email_sender'], self.config['email_receiver'],msg.as_string())
         return sendmail
 
-        
+    def new_alert(self, cmd):
+        self.refresh_config()
+        if option in ['slack_api']:    
 
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
