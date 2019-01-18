@@ -11,10 +11,12 @@ import sys
 import  six
 import smtplib
 import json
-import time
+import datetime
 from email.mime.text import MIMEText
 import Slacker
 from config import CONFIG
+
+SLEEP_INTERVAL = datetime.timedelta(seconds = 60)
 
 class Alert(MgrModule):
     COMMANDS = [
@@ -70,21 +72,26 @@ class Alert(MgrModule):
         This method is called by the mgr when the module starts and can be
         used for any background activity.
         """
+        old_health = json.loads(self.get('health')['json'])
         self.log.info("Starting")
         while self.run:
-            time_last_checked = 0
-            sleep_interval = 60
-            old_health = json.loads(self.get('health')['json'])
             if time.time() >= time_last_checked:
                 time_last_checked = time.time()+60
                 new_health = json.loads(self.get('health')['json'])
-                for (code,item), (old_code,old_item) in zip(new_health.items(), old_health.items()):
-                    if item['severity'] != old_item['severity'] or item['summary']['message'] != old_item['summary']['message']:
-                        #call send notofication function  here
+                for code, item in new_health['checks'].iteritems():
+                    if code not in old_health['checks']:
+                        # it's a new alert
+                        new[code] = item
                     else:
-                        old_health = new_health
-            self.log.debug('Sleeping for %d seconds', sleep_interval)
-            self.event.wait(sleep_interval)
+                        old_item = old_health['checks'][code]
+                        if item['severity'] != old_item['severity'] or item['summary']['message'] != old_item['summary']['message']:
+                            # changed
+                            updated[code] = item
+                for code, item in old_health['checks'].iteritems():
+                    if code not in new_health['checks']:
+                        # health alert has resolved
+            self.log.debug('Sleeping for %d seconds', SLEEP_INTERVAL)
+            self.event.wait(SLEEP_INTERVAL)
             self.event.clear()
 
     def shutdown(self):
