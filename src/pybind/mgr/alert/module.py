@@ -134,9 +134,9 @@ class Alert(MgrModule):
         sendmail = server.sendmail(self.config['email_sender'], self.config['email_receiver'],msg.as_string())
         return sendmail
 
-    # def new_alert(self, cmd):
-    #     self.refresh_config()
-    #     if option in ['slack_api']:
+    def new_alert(self, cmd):
+        self.refresh_config()
+        if option in ['slack_api']:
 
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
