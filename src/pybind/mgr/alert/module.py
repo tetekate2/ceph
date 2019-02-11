@@ -134,9 +134,9 @@ class Alert(MgrModule):
         sendmail = server.sendmail(self.config['email_sender'], self.config['email_receiver'],msg.as_string())
         return sendmail
 
-    def new_alert(self, cmd):
-        self.refresh_config()
-        if option in ['slack_api']:    
+    # def new_alert(self, cmd):
+    #     self.refresh_config()
+    #     if option in ['slack_api']:
 
     def handle_command(self, inbuf, cmd):
         self.log.error("handle_command")
@@ -154,32 +154,66 @@ class Alert(MgrModule):
                     self.get_config(opt['name']) or opt['default'])
             self.log.debug(' %s = %s', opt['name'], getattr(self, opt['name']))
 
+
+    def compare_dicts(old_health, new_health):
+        # if old dict == new_dict, return false, else return true
+        compare_val = True
+        msg = ""
+        if "checks" in old_health:
+            for code, item in old_health['checks'].iteritems():
+                if code not in new_health['checks']:
+                    # health alert has resolved
+                    msg = "{} RESOLVED".format(code['summary']['message'])
+        return (compare_val, msg)
+
+    def get_msg(old_health, new_health, msg):
+        # get message
+        old = {}
+        new = {}
+        updated = {}
+        STATUS_TO_MSG = {
+        "HEALTH_OK": "Cluster now healthy",
+        "HEALTH_WARN": "Health check warning",
+        }
+        msg_pt_1 = ""
+        msg_pt_2 = ""
+        msg_pt_3 = msg
+        if "status" in new_health and new_health["status"]:
+            msg_pt_1 = new_health["status"]
+
+        if "checks" in new_health:
+            for code, item in new_health['checks'].iteritems():
+                if code not in old_health['checks']:
+                    # it's a new alert
+                    msg_pt_2 = item
+                else:
+                    old_item = old_health['checks'][code]
+                    if item['severity'] != old_item['severity'] or item['summary']['message'] != old_item['summary']['message']:
+                        # changed
+                        msg_pt_2 = item
+        complete_msg = "{} {} {}".format(msg_pt_1, msg_pt_2, msg_pt_3)
+        return complete_msg
+
+
     def serve(self):
         """
         This method is called by the mgr when the module starts and can be
         used for any background activity.
         """
         self.log.info("Starting")
-        old_health = None
         old_health = json.loads(self.get('health')['json'])
-
         while self.run:
             self.refresh_config()
             if time.time() >= time_last_checked:
                 time_last_checked = time.time()+60
                 new_health = json.loads(self.get('health')['json'])
-                for code, item in new_health['checks'].iteritems():
-                    if code not in old_health['checks']:
-                        # it's a new alert
-                        new[code] = item
-                    else:
-                        old_item = old_health['checks'][code]
-                        if item['severity'] != old_item['severity'] or item['summary']['message'] != old_item['summary']['message']:
-                            # changed
-                            updated[code] = item
-                for code, item in old_health['checks'].iteritems():
-                    if code not in new_health['checks']:
-                        # health alert has resolved
+                # check if both dictionaries are the same. If they are the same, do nothing, else, send notifications
+                dict_compare = compare_dicts(old_health, new_health)
+                if dict_compare[0]:
+                    # dicts are different
+                    msg = get_msg(old_health, new_health, dict_compare[1])
+                    # send message
+                    self.log.info(msg)
             self.log.debug('Sleeping for %d seconds', SLEEP_INTERVAL)
             self.event.wait(SLEEP_INTERVAL)
             self.event.clear()
